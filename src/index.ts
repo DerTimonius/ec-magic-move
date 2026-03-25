@@ -1,7 +1,23 @@
+import type { ExpressiveCodeBlockProps } from '@expressive-code/core';
 import { definePlugin } from '@expressive-code/core';
 import { h, select } from '@expressive-code/core/hast';
+import type {
+	MagicMoveDifferOptions,
+	MagicMoveRenderOptions,
+} from 'shiki-magic-move/types';
 
 const THEME = 'catppuccin-mocha';
+
+type MagicMoveData = {
+	beforeCode: string;
+	afterCode: string;
+	lang: string;
+	theme: string;
+};
+
+type MagicMoveBlockProps = Partial<ExpressiveCodeBlockProps> & {
+	magicMove?: MagicMoveData;
+};
 
 const JS = `
 import { createHighlighter } from 'shiki';
@@ -41,6 +57,10 @@ document
       );
       const lang = el.dataset.magicMoveLang ?? 'text';
       const theme = el.dataset.magicMoveTheme ?? 'catppuccin-mocha';
+      const duration = Number(el.dataset.magicMoveDuration);
+      const stagger = Number(el.dataset.magicMoveStagger);
+      const lineNumbers = el.dataset.magicMoveLineNumbers;
+      const opts = { duration, stagger };
 
       const host = el.closest('.expressive-code');
       const btn = host?.querySelector('.ec-magic-move-btn');
@@ -57,11 +77,11 @@ document
 
       const machine = createMagicMoveMachine(
         (code) =>
-          codeToKeyedTokens(highlighter, code, { lang, theme }),
-        {},
+          codeToKeyedTokens(highlighter, code, { lang, theme }, lineNumbers),
+        opts,
       );
 
-      const renderer = new MagicMoveRenderer(pre);
+      const renderer = new MagicMoveRenderer(pre, opts);
 
       machine.commit(beforeCode);
       await renderer.render(machine.current);
@@ -89,15 +109,25 @@ document
   });
 `;
 
-export function pluginMagicMove() {
+type Options = MagicMoveRenderOptions & MagicMoveDifferOptions;
+
+const DEFAULT_OPTS = {
+	duration: 800,
+	stagger: 3,
+	lineNumbers: true,
+} satisfies Options;
+
+export function pluginMagicMove(opts?: Options) {
+	const config = { ...DEFAULT_OPTS, ...opts };
+
 	return definePlugin({
 		name: 'Magic Move',
 		jsModules: [JS],
 		baseStyles: `
       .ec-magic-move-btn {
         position: absolute;
-        width: 48px;
-        height: 48px;
+        width: 36px;
+        height: 36px;
         bottom: 0.6rem;
         right: 0.6rem;
         display: flex;
@@ -159,8 +189,8 @@ export function pluginMagicMove() {
         transition: all var(--smm-duration, 0.5s) var(--smm-easing, ease);
       }
 
-      pre[data-magic-move] .shiki-magic-move-container-resize,
-      pre[data-magic-move] .shiki-magic-move-container-restyle {
+      .shiki-magic-move-container-resize,
+      .shiki-magic-move-container-restyle {
         transition-delay: calc(
           var(--smm-duration, 0.5s) * var(--smm-delay-container, 1)
         );
@@ -215,7 +245,7 @@ export function pluginMagicMove() {
 
 				codeBlock.deleteLines(range(afterStart, afterEnd));
 
-				(codeBlock.props as any).magicMove = {
+				(codeBlock.props as MagicMoveBlockProps).magicMove = {
 					beforeCode,
 					afterCode,
 					lang: codeBlock.language,
@@ -224,7 +254,11 @@ export function pluginMagicMove() {
 			},
 
 			postprocessRenderedBlock: async ({ codeBlock, renderData }) => {
-				const props = (codeBlock.props as any).magicMove;
+				const metaOptions = codeBlock.metaOptions;
+				const duration = metaOptions.getInteger('magic-move-duration');
+				const stagger = metaOptions.getInteger('magic-move-stagger');
+				const lineNumbers = metaOptions.getBoolean('magic-move-line-numbers');
+				const props = (codeBlock.props as MagicMoveBlockProps).magicMove;
 
 				if (!props) return;
 
@@ -234,11 +268,15 @@ export function pluginMagicMove() {
 				if (pre) {
 					pre.properties = {
 						...pre.properties,
+						class: 'shiki-magic-move-container-resize',
 						'data-magic-move-before': encodeURIComponent(beforeCode),
 						'data-magic-move-after': encodeURIComponent(afterCode),
 						'data-magic-move-lang': lang,
 						'data-magic-move-theme': theme,
 						'data-magic-move': true,
+						'data-magic-move-duration': duration ?? config.duration,
+						'data-magic-move-stagger': stagger ?? config.stagger,
+						'data-magic-move-line-numbers': lineNumbers ?? config.lineNumbers,
 					};
 				}
 
