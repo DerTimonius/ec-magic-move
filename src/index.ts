@@ -1,18 +1,12 @@
 import type { ExpressiveCodeBlockProps } from '@expressive-code/core';
 import { definePlugin } from '@expressive-code/core';
 import { h, select } from '@expressive-code/core/hast';
-import type {
-	MagicMoveDifferOptions,
-	MagicMoveRenderOptions,
-} from 'shiki-magic-move/types';
-
-const THEME = 'catppuccin-mocha';
+import type { BundledTheme } from 'shiki';
 
 type MagicMoveData = {
 	beforeCode: string;
 	afterCode: string;
 	lang: string;
-	theme: string;
 };
 
 type MagicMoveBlockProps = Partial<ExpressiveCodeBlockProps> & {
@@ -27,6 +21,7 @@ import {
 } from 'shiki-magic-move/core';
 import { MagicMoveRenderer } from 'shiki-magic-move/renderer';
 
+const THEME = 'catppuccin-mocha';
 const highlighterCache = new Map();
 
 async function getHighlighter(lang, theme) {
@@ -56,7 +51,7 @@ document
         el.dataset.magicMoveAfter ?? '',
       );
       const lang = el.dataset.magicMoveLang ?? 'text';
-      const theme = el.dataset.magicMoveTheme ?? 'catppuccin-mocha';
+      const theme = el.dataset.magicMoveTheme ?? THEME;
       const duration = Number(el.dataset.magicMoveDuration);
       const stagger = Number(el.dataset.magicMoveStagger);
       const lineNumbers = el.dataset.magicMoveLineNumbers;
@@ -109,12 +104,18 @@ document
   });
 `;
 
-type Options = MagicMoveRenderOptions & MagicMoveDifferOptions;
+type Options = {
+	duration: number;
+	stagger: number;
+	lineNumbers: true;
+	theme: BundledTheme;
+};
 
 const DEFAULT_OPTS = {
 	duration: 800,
 	stagger: 3,
 	lineNumbers: true,
+	theme: 'catppuccin-mocha',
 } satisfies Options;
 
 export function pluginMagicMove(opts?: Options) {
@@ -249,7 +250,6 @@ export function pluginMagicMove(opts?: Options) {
 					beforeCode,
 					afterCode,
 					lang: codeBlock.language,
-					theme: THEME,
 				};
 			},
 
@@ -262,7 +262,7 @@ export function pluginMagicMove(opts?: Options) {
 
 				if (!props) return;
 
-				const { beforeCode, afterCode, lang, theme } = props;
+				const { beforeCode, afterCode, lang } = props;
 
 				const pre = select('pre', renderData.blockAst);
 				if (pre) {
@@ -272,7 +272,7 @@ export function pluginMagicMove(opts?: Options) {
 						'data-magic-move-before': encodeURIComponent(beforeCode),
 						'data-magic-move-after': encodeURIComponent(afterCode),
 						'data-magic-move-lang': lang,
-						'data-magic-move-theme': theme,
+						'data-magic-move-theme': config.theme,
 						'data-magic-move': true,
 						'data-magic-move-duration': duration ?? config.duration,
 						'data-magic-move-stagger': stagger ?? config.stagger,
