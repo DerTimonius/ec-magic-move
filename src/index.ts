@@ -231,9 +231,8 @@ export function pluginMagicMove(opts?: Options) {
       }
 
       .ec-magic-move-error {
-        position: relative;
-        bottom: 40px;
         padding: 0.5rem 0.75rem;
+        margin-top: 0.5rem;
         font-size: 0.85rem;
         border-radius: 4px;
         background: var(--ec-tm-delDiffIndCol, #f38ba8);
@@ -288,10 +287,19 @@ export function pluginMagicMove(opts?: Options) {
 				const afterCode = afterLines.map((line) => line.text).join('\n');
 				const rangeResult = range(afterResult.value);
 
-				// TODO: add error handling
 				if (rangeResult.isErr()) {
 					(codeBlock.props as MagicMoveBlockProps).magicMove = err(
 						rangeResult.error,
+					);
+					return;
+				}
+
+				const codeLines = codeBlock.getLines().length;
+
+				// biome-ignore lint/style/noNonNullAssertion: not undefined
+				if (codeLines < rangeResult.value.at(-1)!) {
+					(codeBlock.props as MagicMoveBlockProps).magicMove = err(
+						'cannot delete lines outside of code block',
 					);
 					return;
 				}
