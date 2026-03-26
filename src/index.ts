@@ -2,6 +2,8 @@ import type { ExpressiveCodeBlockProps } from '@expressive-code/core';
 import { definePlugin } from '@expressive-code/core';
 import { h, select } from '@expressive-code/core/hast';
 import type { BundledTheme } from 'shiki';
+import { err, ok, type Result } from './result';
+import { parseRange, range, validateRanges } from './utils';
 
 type MagicMoveData = {
 	beforeCode: string;
@@ -10,7 +12,7 @@ type MagicMoveData = {
 };
 
 type MagicMoveBlockProps = Partial<ExpressiveCodeBlockProps> & {
-	magicMove?: MagicMoveData;
+	magicMove?: Result<MagicMoveData, string>;
 };
 
 const JS = `
@@ -227,6 +229,16 @@ export function pluginMagicMove(opts?: Options) {
       pre[data-magic-move] .shiki-magic-move-leave-to {
         opacity: 0;
       }
+
+      .ec-magic-move-error {
+        position: relative;
+        bottom: 40px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        border-radius: 4px;
+        background: var(--ec-tm-delDiffIndCol, #f38ba8);
+        color: var(--ec-frm-edBg, #1e1e2e);
+      }
     `,
 		hooks: {
 			preprocessCode: async ({ codeBlock }) => {
@@ -235,22 +247,62 @@ export function pluginMagicMove(opts?: Options) {
 
 				if (!beforeRange || !afterRange || !codeBlock.language) return;
 
-				const [beforeStart, beforeEnd] = parseRange(beforeRange);
-				const [afterStart, afterEnd] = parseRange(afterRange);
+				const beforeResult = parseRange(beforeRange);
+				const afterResult = parseRange(afterRange);
 
-				const beforeLines = codeBlock.getLines(beforeStart, beforeEnd + 1);
-				const afterLines = codeBlock.getLines(afterStart, afterEnd + 1);
+				if (beforeResult.isErr()) {
+					(codeBlock.props as MagicMoveBlockProps).magicMove = err(
+						`error at beforeRange: ${beforeResult.error}`,
+					);
+					return;
+				}
+				if (afterResult.isErr()) {
+					(codeBlock.props as MagicMoveBlockProps).magicMove = err(
+						`error at afterRange: ${afterResult.error}`,
+					);
+					return;
+				}
+
+				const beforeLines = codeBlock.getLines(
+					beforeResult.value.start,
+					beforeResult.value.end + 1,
+				);
+				const afterLines = codeBlock.getLines(
+					afterResult.value.start,
+					afterResult.value.end + 1,
+				);
+
+				const rangeValidation = validateRanges(
+					beforeResult.value,
+					afterResult.value,
+				);
+
+				if (rangeValidation.isErr()) {
+					(codeBlock.props as MagicMoveBlockProps).magicMove = err(
+						rangeValidation.error,
+					);
+					return;
+				}
 
 				const beforeCode = beforeLines.map((line) => line.text).join('\n');
 				const afterCode = afterLines.map((line) => line.text).join('\n');
+				const rangeResult = range(afterResult.value);
 
-				codeBlock.deleteLines(range(afterStart, afterEnd));
+				// TODO: add error handling
+				if (rangeResult.isErr()) {
+					(codeBlock.props as MagicMoveBlockProps).magicMove = err(
+						rangeResult.error,
+					);
+					return;
+				}
 
-				(codeBlock.props as MagicMoveBlockProps).magicMove = {
+				codeBlock.deleteLines(rangeResult.value);
+
+				(codeBlock.props as MagicMoveBlockProps).magicMove = ok({
 					beforeCode,
 					afterCode,
 					lang: codeBlock.language,
-				};
+				});
 			},
 
 			postprocessRenderedBlock: async ({ codeBlock, renderData }) => {
@@ -262,7 +314,18 @@ export function pluginMagicMove(opts?: Options) {
 
 				if (!props) return;
 
-				const { beforeCode, afterCode, lang } = props;
+				if (props.isErr()) {
+					const errorDiv = h(
+						'div',
+						{
+							class: 'ec-magic-move-error',
+						},
+						`[MAGIC-MOVE-ERROR]: ${props.error}`,
+					);
+					renderData.blockAst.children.push(errorDiv);
+					return;
+				}
+				const { beforeCode, afterCode, lang } = props.value;
 
 				const pre = select('pre', renderData.blockAst);
 				if (pre) {
@@ -314,16 +377,4 @@ export function pluginMagicMove(opts?: Options) {
 			},
 		},
 	});
-}
-
-function parseRange(value: string) {
-	const [startRaw, endRaw] = value.split('-');
-	const start = Number(startRaw) - 1;
-	const end = Number(endRaw ?? startRaw) - 1;
-
-	return [start, end] as const;
-}
-
-function range(start: number, end: number) {
-	return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }

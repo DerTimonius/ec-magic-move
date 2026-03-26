@@ -35,6 +35,7 @@
 		"typecheck": "tsc --noEmit",
 		"build": "tsdown",
 		"dev": "tsdown --watch ./src",
+		"test": "vitest",
 		"release": "pnpm build && changeset version && changeset publish",
 		"prepublishOnly": "biome check && tsc --noEmit"
 	},
@@ -44,7 +45,8 @@
 		"@expressive-code/core": "^0.41.7",
 		"@expressive-code/plugin-shiki": "^0.41.7",
 		"tsdown": "0.21.0-beta.2",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.1"
 	},
 	"peerDependencies": {
 		"@expressive-code/core": "^0.41.7",
