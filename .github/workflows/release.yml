@@ -33,7 +33,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run CI checks
-        run: pnpm ci
+        run: pnpm check
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
