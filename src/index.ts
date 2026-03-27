@@ -107,10 +107,31 @@ document
 `;
 
 type Options = {
+	/**
+	 * Duration of the animation in milliseconds.
+	 * @default 800
+	 */
 	duration: number;
+	/**
+	 * Stagger delay between each token in milliseconds.
+	 * @default 3
+	 */
 	stagger: number;
-	lineNumbers: true;
+	/**
+	 * Whether to show line numbers.
+	 * @default true
+	 */
+	lineNumbers: boolean;
+	/**
+	 * The syntax highlighting theme to use.
+	 * @default 'catppuccin-mocha'
+	 */
 	theme: BundledTheme;
+	/**
+	 * The position of the play button
+	 * @default 'bottom-right'
+	 */
+	buttonPosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 };
 
 const DEFAULT_OPTS = {
@@ -118,6 +139,7 @@ const DEFAULT_OPTS = {
 	stagger: 3,
 	lineNumbers: true,
 	theme: 'catppuccin-mocha',
+	buttonPosition: 'bottom-right',
 } satisfies Options;
 
 export function pluginMagicMove(opts?: Options) {
@@ -131,8 +153,6 @@ export function pluginMagicMove(opts?: Options) {
         position: absolute;
         width: 36px;
         height: 36px;
-        bottom: 0.6rem;
-        right: 0.6rem;
         display: flex;
         opacity: 0.7;
         transition: all 0.3s ease-out;
@@ -145,6 +165,20 @@ export function pluginMagicMove(opts?: Options) {
         border-radius: 8px;
         cursor: pointer;
         color: var(--ec-codeFg, #cdd6f4);
+
+        &[data-position^="top"] {
+          top: 0.6rem;
+        }
+        &[data-position^="bottom"] {
+          bottom: 0.6rem;
+        }
+
+        &[data-position$="-right"] {
+          right: 0.6rem;
+        }
+        &[data-position$="-left"] {
+          left: 0.6rem;
+        }
       }
 
       .ec-magic-move-btn:hover {
@@ -357,6 +391,7 @@ export function pluginMagicMove(opts?: Options) {
 						class: 'ec-magic-move-btn',
 						type: 'button',
 						'aria-label': 'Toggle Magic Move animation',
+						'data-position': config.buttonPosition,
 					},
 					[
 						h(

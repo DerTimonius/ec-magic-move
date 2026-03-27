@@ -1,9 +1,9 @@
 import { type Err, err, ok, type Result } from './result';
 
-interface Range {
+type Range = {
 	start: number;
 	end: number;
-}
+};
 
 export function parseRange(value: string): Result<Range, string> {
 	const result = value.split('-');
