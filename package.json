@@ -1,6 +1,6 @@
 {
 	"name": "ec-magic-move",
-	"version": "1.0.4",
+	"version": "1.0.0",
 	"license": "MIT",
 	"author": "Timon Jurschitsch <contact@dertimonius.eu>",
 	"home": "https://github.com/DerTimonius/ec-magic-move",
@@ -37,7 +37,7 @@
 		"dev": "tsdown --watch ./src",
 		"test": "vitest",
 		"release": "pnpm build && changeset version && changeset publish",
-		"prepublishOnly": "biome check && tsc --noEmit"
+		"ci": "biome check && tsc --noEmit"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.4",
