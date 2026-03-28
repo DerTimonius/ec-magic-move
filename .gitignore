@@ -1,3 +1,6 @@
 node_modules
 dist
 *.mov
+
+# Auto-generated bundled JS module
+src/js-module/magic-move.min.ts
