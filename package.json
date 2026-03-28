@@ -48,7 +48,7 @@
 		"dev": "tsdown --watch ./src",
 		"test": "vitest",
 		"release": "pnpm build && changeset version && changeset publish",
-		"check": "biome check && tsc --noEmit"
+		"check": "pnpm build:js && biome check && tsc --noEmit"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.4",
