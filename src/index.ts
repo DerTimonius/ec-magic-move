@@ -2,6 +2,9 @@ import type { ExpressiveCodeBlockProps } from '@expressive-code/core';
 import { definePlugin } from '@expressive-code/core';
 import { h, select } from '@expressive-code/core/hast';
 import type { BundledTheme } from 'shiki';
+import { createHighlighter } from 'shiki';
+import { codeToKeyedTokens, syncTokenKeys } from 'shiki-magic-move/core';
+import { jsModule as JS } from './js-module/magic-move.min';
 import { err, ok, type Result } from './result';
 import { parseRange, range, validateRanges } from './utils';
 
@@ -14,97 +17,6 @@ type MagicMoveData = {
 type MagicMoveBlockProps = Partial<ExpressiveCodeBlockProps> & {
 	magicMove?: Result<MagicMoveData, string>;
 };
-
-const JS = `
-import { createHighlighter } from 'shiki';
-import {
-  createMagicMoveMachine,
-  codeToKeyedTokens,
-} from 'shiki-magic-move/core';
-import { MagicMoveRenderer } from 'shiki-magic-move/renderer';
-
-const THEME = 'catppuccin-mocha';
-const highlighterCache = new Map();
-
-async function getHighlighter(lang, theme) {
-  const key = \`\${lang}:\${theme}\`;
-
-  if (!highlighterCache.has(key)) {
-    highlighterCache.set(
-      key,
-      createHighlighter({
-        langs: [lang],
-        themes: [theme],
-      }),
-    );
-  }
-
-  return highlighterCache.get(key);
-}
-
-document
-  .querySelectorAll('[data-magic-move-before]')
-  .forEach(async (el) => {
-    try {
-      const beforeCode = decodeURIComponent(
-        el.dataset.magicMoveBefore ?? '',
-      );
-      const afterCode = decodeURIComponent(
-        el.dataset.magicMoveAfter ?? '',
-      );
-      const lang = el.dataset.magicMoveLang ?? 'text';
-      const theme = el.dataset.magicMoveTheme ?? THEME;
-      const duration = Number(el.dataset.magicMoveDuration);
-      const stagger = Number(el.dataset.magicMoveStagger);
-      const lineNumbers = el.dataset.magicMoveLineNumbers;
-      const opts = { duration, stagger };
-
-      const host = el.closest('.expressive-code');
-      const btn = host?.querySelector('.ec-magic-move-btn');
-
-      if (!btn) {
-        console.error('Magic Move: Button not found');
-        return;
-      }
-
-      const pre = el;
-      pre.replaceChildren();
-
-      const highlighter = await getHighlighter(lang, theme);
-
-      const machine = createMagicMoveMachine(
-        (code) =>
-          codeToKeyedTokens(highlighter, code, { lang, theme }, lineNumbers),
-        opts,
-      );
-
-      const renderer = new MagicMoveRenderer(pre, opts);
-
-      machine.commit(beforeCode);
-      await renderer.render(machine.current);
-
-      let showingAfter = false;
-      let busy = false;
-
-      btn.addEventListener('click', async () => {
-        if (busy) return;
-        busy = true;
-
-        try {
-          machine.commit(showingAfter ? beforeCode : afterCode);
-          await renderer.render(machine.current);
-          showingAfter = !showingAfter;
-        } catch (error) {
-          console.error('Magic Move: Render error:', error);
-        } finally {
-          busy = false;
-        }
-      });
-    } catch (error) {
-      console.error('Magic Move: Setup error:', error);
-    }
-  });
-`;
 
 type Options = {
 	/**
@@ -141,6 +53,23 @@ const DEFAULT_OPTS = {
 	theme: 'catppuccin-mocha',
 	buttonPosition: 'bottom-right',
 } satisfies Options;
+
+const highlighterCache = new Map<
+	string,
+	ReturnType<typeof createHighlighter>
+>();
+
+function getOrCreateHighlighter(lang: string, theme: BundledTheme) {
+	const key = `${lang}:${theme}`;
+	if (!highlighterCache.has(key)) {
+		highlighterCache.set(
+			key,
+			createHighlighter({ langs: [lang], themes: [theme] }),
+		);
+	}
+	// biome-ignore lint/style/noNonNullAssertion: guaranteed to exist
+	return highlighterCache.get(key)!;
+}
 
 export function pluginMagicMove(opts?: Options) {
 	const config = { ...DEFAULT_OPTS, ...opts };
@@ -369,19 +298,41 @@ export function pluginMagicMove(opts?: Options) {
 				}
 				const { beforeCode, afterCode, lang } = props.value;
 
+				const theme = config.theme;
+				const showLineNumbers = lineNumbers ?? config.lineNumbers;
+
+				const highlighter = await getOrCreateHighlighter(lang, theme);
+				const beforeTokens = codeToKeyedTokens(
+					highlighter,
+					beforeCode,
+					{ lang, theme },
+					showLineNumbers,
+				);
+				const afterTokens = codeToKeyedTokens(
+					highlighter,
+					afterCode,
+					{ lang, theme },
+					showLineNumbers,
+				);
+				const { from: syncedBefore, to: syncedAfter } = syncTokenKeys(
+					beforeTokens,
+					afterTokens,
+				);
+
 				const pre = select('pre', renderData.blockAst);
 				if (pre) {
 					pre.properties = {
 						...pre.properties,
 						class: 'shiki-magic-move-container-resize',
-						'data-magic-move-before': encodeURIComponent(beforeCode),
-						'data-magic-move-after': encodeURIComponent(afterCode),
-						'data-magic-move-lang': lang,
-						'data-magic-move-theme': config.theme,
+						'data-magic-move-before': encodeURIComponent(
+							JSON.stringify(syncedBefore),
+						),
+						'data-magic-move-after': encodeURIComponent(
+							JSON.stringify(syncedAfter),
+						),
 						'data-magic-move': true,
 						'data-magic-move-duration': duration ?? config.duration,
 						'data-magic-move-stagger': stagger ?? config.stagger,
-						'data-magic-move-line-numbers': lineNumbers ?? config.lineNumbers,
 					};
 				}
 

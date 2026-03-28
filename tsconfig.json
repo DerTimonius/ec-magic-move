@@ -1,5 +1,6 @@
 {
 	"include": ["src"],
+	"exclude": ["src/js-module/magic-move.js", "src/js-module/build.mjs"],
 	"compilerOptions": {
 		"allowJs": true,
 		"declaration": true,

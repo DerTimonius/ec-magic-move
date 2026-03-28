@@ -23,6 +23,8 @@ jobs:
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
+      - run: pnpm build:js
+
       - name: Typecheck
         run: pnpm typecheck
 

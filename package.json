@@ -1,5 +1,15 @@
 {
 	"name": "ec-magic-move",
+	"description": "A port of shiki-magic-move as a plugin for Expressive Code",
+	"keywords": [
+		"expressive code",
+		"starlight",
+		"astro",
+		"code block",
+		"code animation",
+		"animation",
+		"shiki-magic-move"
+	],
 	"version": "1.0.0",
 	"license": "MIT",
 	"author": "Timon Jurschitsch <contact@dertimonius.eu>",
@@ -33,7 +43,8 @@
 		"lint": "biome lint --write",
 		"lint:check": "biome lint",
 		"typecheck": "tsc --noEmit",
-		"build": "tsdown",
+		"build:js": "node src/js-module/build.mjs",
+		"build": "pnpm build:js && tsdown",
 		"dev": "tsdown --watch ./src",
 		"test": "vitest",
 		"release": "pnpm build && changeset version && changeset publish",
@@ -44,6 +55,7 @@
 		"@changesets/cli": "^2.30.0",
 		"@expressive-code/core": "^0.41.7",
 		"@expressive-code/plugin-shiki": "^0.41.7",
+		"esbuild": "^0.27.4",
 		"tsdown": "0.21.0-beta.2",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.1"
@@ -56,5 +68,10 @@
 	"packageManager": "pnpm@10.30.3",
 	"dependencies": {
 		"shiki-magic-move": "^1.3.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild"
+		]
 	}
 }
