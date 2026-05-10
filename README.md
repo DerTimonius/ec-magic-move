@@ -57,6 +57,7 @@ pluginMagicMove({
  duration: 800, // the duration of the animation in milliseconds
  stagger: 3, // the stagger between the individual tokens, also in milliseconds
  lineNumbers: true, // whether or not to show line numbers
+ autoanimate: false, // whether or not to autoanimate the code block
  theme: 'catppuccin-mocha', // the theme of the shiki highlighter
  buttonPosition: 'bottom-right', // the position of the play button
 })
@@ -67,6 +68,7 @@ pluginMagicMove({
 - `duration`: the duration of the animation in milliseconds (default: `800`)
 - `stagger`:  the stagger between the individual tokens, also in milliseconds (default: `3`)
 - `lineNumbers`: whether or not to show line numbers (default: `true`)
+- `autoanimate`: whether or not to autoanimate the codeblock (default: `false`)
 - `theme`: the theme of the shiki highlighter (default: `catppuccin-mocha`, possible values: all shiki themes)
 - `buttonPosition`: the position of the play button (default: `bottom-right`, other possible values: `bottom-left`, `top-right`, `top-left`)
 
@@ -94,3 +96,4 @@ You can override settings for individual code blocks using meta attributes:
 - `magic-move-duration="value"`: Override the animation duration for this block
 - `magic-move-stagger="value"`: Override the animation stagger for this block
 - `magic-move-line-numbers="boolean"`: Decide per block whether or not to show the line numbers
+- `autoanimate="boolean"`: Decide per block whether or not it should be autoanimated
