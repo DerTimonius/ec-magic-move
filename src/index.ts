@@ -35,6 +35,11 @@ type Options = {
 	 */
 	lineNumbers: boolean;
 	/**
+	 * Whether to autoanimate the code block.
+	 * @default false
+	 */
+	autoanimate: boolean;
+	/**
 	 * The syntax highlighting theme to use.
 	 * @default 'catppuccin-mocha'
 	 */
@@ -50,6 +55,7 @@ const DEFAULT_OPTS = {
 	duration: 800,
 	stagger: 3,
 	lineNumbers: true,
+	autoanimate: false,
 	theme: 'catppuccin-mocha',
 	buttonPosition: 'bottom-right',
 } satisfies Options;
@@ -281,6 +287,8 @@ export function pluginMagicMove(opts?: Options) {
 				const duration = metaOptions.getInteger('magic-move-duration');
 				const stagger = metaOptions.getInteger('magic-move-stagger');
 				const lineNumbers = metaOptions.getBoolean('magic-move-line-numbers');
+				const autoanimate = metaOptions.getBoolean('autoanimate');
+
 				const props = (codeBlock.props as MagicMoveBlockProps).magicMove;
 
 				if (!props) return;
@@ -333,6 +341,7 @@ export function pluginMagicMove(opts?: Options) {
 						'data-magic-move': true,
 						'data-magic-move-duration': duration ?? config.duration,
 						'data-magic-move-stagger': stagger ?? config.stagger,
+						'data-autoanimate': autoanimate ?? config.autoanimate,
 					};
 				}
 

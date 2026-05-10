@@ -10,6 +10,7 @@ document.querySelectorAll('[data-magic-move]').forEach(async (el) => {
 		);
 		const duration = Number(el.dataset.magicMoveDuration);
 		const stagger = Number(el.dataset.magicMoveStagger);
+		const autoanimate = el.dataset.autoanimate === 'true';
 		const opts = { duration, stagger };
 
 		const host = el.closest('.expressive-code');
@@ -20,6 +21,10 @@ document.querySelectorAll('[data-magic-move]').forEach(async (el) => {
 			return;
 		}
 
+		const reducedMotion = window.matchMedia(
+			'(prefers-reduced-motion: reduce)',
+		).matches;
+
 		const pre = el;
 		pre.replaceChildren();
 
@@ -29,7 +34,7 @@ document.querySelectorAll('[data-magic-move]').forEach(async (el) => {
 		let showingAfter = false;
 		let busy = false;
 
-		btn.addEventListener('click', async () => {
+		async function render() {
 			if (busy) return;
 			busy = true;
 
@@ -41,7 +46,33 @@ document.querySelectorAll('[data-magic-move]').forEach(async (el) => {
 			} finally {
 				busy = false;
 			}
+		}
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (reducedMotion) return;
+
+				entries.forEach(async (entry) => {
+					if (entry.isIntersecting) {
+						await render();
+						observer.disconnect();
+					}
+				});
+			},
+			{
+				root: null,
+				rootMargin: '-50px',
+				threshold: 1,
+			},
+		);
+
+		btn.addEventListener('click', async () => {
+			await render();
 		});
+
+		if (autoanimate) {
+			observer.observe(btn);
+		}
 	} catch (error) {
 		console.error('Magic Move: Setup error:', error);
 	}
