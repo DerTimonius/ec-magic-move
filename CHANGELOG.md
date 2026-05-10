@@ -1,5 +1,15 @@
 # ec-magic-move
 
+## 1.1.0
+
+### Minor Changes
+
+- 1bd2901: adds autoanimate to the codeblocks
+
+### Patch Changes
+
+- 1a66f27: update dependencies
+
 ## 1.0.1
 
 ### Patch Changes
